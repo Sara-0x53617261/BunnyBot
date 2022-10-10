@@ -1,4 +1,3 @@
-#enc
 import os
 import logging
 import random
@@ -6,7 +5,6 @@ import random
 # Discord imports
 import discord
 from discord import app_commands
-from discord import AppCommandOptionType
 import typing
 
 
@@ -130,6 +128,70 @@ async def hug(interaction: discord.Interaction, user:typing.Optional[discord.Mem
 """
     COLOR COMMANDS & HANDLER
 """
+
+# Gets the color of given user, or the person that made the command if blank
+@tree.command(name="get_colors", description="Shows you the current colors of the given user or yourself if blank")
+async def get_colors(interaction: discord.Interaction, user:typing.Optional[discord.Member]=None):
+
+    if user is None:
+        # No user given, getting colors from self
+        usern = interaction.user.name
+        user = interaction.user
+    else:
+        # User was given, usern for easy access to name
+        usern = user.name
+
+    success, r, g, b, h = await color_getter(interaction=interaction, user=user)
+
+    if success:
+        await interaction.response.send_message(f"Color values of {usern}...\nR: {r}\nG: {g}\nB: {b}\nHEX: {h}")
+    else:
+        await interaction.response.send_message("Please make sure you or the given user already has the generated color role before running this command", ephemeral=True)
+
+
+@tree.command(name="steal_colors", description="Steals the colors from the given user")
+async def steal_colors(interaction: discord.Interaction, user:discord.Member):
+
+    success, r, g, b, h = await color_getter(interaction, user)
+
+    if success:
+        await interaction.response.defer(ephemeral=False)
+
+        await color_role_handler(interaction, r, g, b)
+
+        await interaction.followup.send(f"Color stolen from {user.name}")
+    else:
+        await interaction.response.send_message("Please make sure the given user already has the generated color role before running this command", ephemeral=True)
+
+async def color_getter(interaction: discord.Interaction, user:discord.Member):
+    
+    usern = user.name
+    
+    # What the role's name is supposed to be
+    role_name = f"{usern}-color"
+    role = None
+
+    for role_ in user.roles:
+        if role_.name == role_name:
+            # Role found
+            role = role_
+            break
+
+    if role is None:
+        # Role doesnt exist, exit out with False
+        logs.info(f"grab_colors - {usern} - Role not found")
+
+        # Error, role doesnt exists return False and "None's" for the rgbh values
+        return False, None, None, None, None
+    
+    logs.info(f"grab_colors - {usern} - Got colors: {role.color.value} | r: {role.color.r} | g: {role.color.g} | b: {role.color.b} | HEX: {hex(role.color.value)}")
+
+    r = role.color.r
+    g = role.color.g
+    b = role.color.b
+    h = hex(role.color.value)
+
+    return True, r, g, b, h
 
 # color role using r,g,b values
 @tree.command(name="my_color", description="Makes a color role for the user using the given rgb values")
