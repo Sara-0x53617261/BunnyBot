@@ -288,5 +288,17 @@ async def color_role_handler(interaction: discord.Interaction, r, g, b):
     logs.info(f"color_role_handler - {uname} - Role updated")
     return
 
+# Error handling - CommandInvokeError
+@tree.error
+async def tree_error(interaction:discord.Interaction, error: app_commands.CommandInvokeError):
+    logs.warning(f"[!] - Caught something - {error}")
+    logs.warning(f"[!] - Original - {error.original}")  # Displays the original exception that was raised
+
+    if isinstance(error.original, discord.errors.Forbidden):    # If exception was 403:Forbidden
+        await interaction.followup.send("ERROR - 'CommandInvokeError | 403 FORBIDDEN' - Check if the bot has access to the channel?", ephemeral=True)
+    else:
+        # dont know how to handle this error
+        raise error
+
 # Run client
 client.run(bot_secret)
