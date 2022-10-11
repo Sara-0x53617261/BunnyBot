@@ -1,7 +1,6 @@
 import os
 import logging
 import random
-from urllib import response
 
 # Discord imports
 import discord
