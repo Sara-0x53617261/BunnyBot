@@ -1,6 +1,7 @@
 import os
 import logging
 import random
+from urllib import response
 
 # Discord imports
 import discord
@@ -19,6 +20,7 @@ load_dotenv()
 bot_secret = os.getenv('SECRET')
 guild_id_dev = os.getenv("GUILD_ID_DEV")
 guild_id_main = os.getenv("GUILD_ID")
+owner = os.getenv("OWNER_ID")
 
 
 # Discord Client
@@ -126,7 +128,7 @@ async def hug(interaction: discord.Interaction, user:typing.Optional[discord.Mem
 
 
 """
-    COLOR COMMANDS & HANDLER
+    COLOR COMMANDS & HANDLERS
 """
 
 # Gets the color of given user, or the person that made the command if blank
@@ -212,17 +214,13 @@ async def my_color(interaction: discord.Interaction,
 @tree.command(name="my_colorh", description="Makes a color role for the user using the given HEX values")
 async def my_colorh(interaction: discord.Interaction, hex_code:str):
     try:
-        if len(hex_code) == 6:
-            # Split hex code into rgb values
-            r,g,b = hex_code[0:2], hex_code[2:4], hex_code[4:6]
+        h = int(hex_code, 16)
+        if (h <= 16777215) and (h >= 0):    # 0xFFFFFF = 16777215
+            color = discord.Color(value=h)
+            r, g, b = color.to_rgb()
 
-            # Convert str to int
-            r = int(r, 16)
-            g = int(g, 16)
-            b = int(b, 16)
-
-            logs.info(f"Converted HEX: {hex_code} to rgb : [ r: {r}, g: {g}, b: {b} ]")
-
+            logs.info(f"my_colorh - HEX {hex_code} - [ r: {r}, g: {g}, b: {b} ]")
+            
             # Defer incase the handler takes longer then 3 seconds
             await interaction.response.defer(ephemeral=True)
 
@@ -232,10 +230,9 @@ async def my_colorh(interaction: discord.Interaction, hex_code:str):
             # Finally, send message when done
             await interaction.followup.send(f"Role updated...")
         else:
-            raise ValueError
+            await interaction.response.send_message("The hexadecimal provided was not within range, the maximum size is '0xFFFFFF' and minimum above 0", ephemeral=True)
     except ValueError:
-        logs.info(f"Value error - params - Hex code: {hex_code}")
-        await interaction.response.send_message(f"Value error - '{hex_code}' is not a valid hex code/color")
+        await interaction.response.send_message("", ephemeral=True)
 
 # Handles the color role commands logic
 async def color_role_handler(interaction: discord.Interaction, r, g, b):
@@ -288,6 +285,11 @@ async def color_role_handler(interaction: discord.Interaction, r, g, b):
     logs.info(f"color_role_handler - {uname} - Role updated")
     return
 
+
+"""
+    ERROR HANDLERS
+"""
+
 # Error handling - CommandInvokeError
 @tree.error
 async def tree_error(interaction:discord.Interaction, error: app_commands.CommandInvokeError):
@@ -300,5 +302,34 @@ async def tree_error(interaction:discord.Interaction, error: app_commands.Comman
         # dont know how to handle this error
         raise error
 
+
+"""
+    ADMIN COMMANDS
+"""
+@tree.command(name="bot_sleep", description="Tells the bot to shutdown and go sleep")
+async def bot_sleep(interaction: discord.Interaction):
+    logs.warning(f"[!] - bot_sleep called by- {interaction.user.name} - ID: {interaction.user.id}")
+    if interaction.user.id == int(owner):
+        logs.warning(f"[!] - confirmed, called by owner")
+        guild = interaction.guild
+
+        sleep_emoji = discord.utils.get(guild.emojis, name="sleep")
+
+        if not sleep_emoji:
+            sleep_emoji = "👋"
+
+        await interaction.response.send_message(f"Understood, going to sleep...\nGoodnight everyone {sleep_emoji}")
+
+        logs.info("Shutting down...")
+
+        await client.close()
+        exit(0)
+    else:
+        await interaction.response.send_message("You're not my SUPERVISOR!")
+
+
+"""
+    === EOF ===
+"""
 # Run client
 client.run(bot_secret)
