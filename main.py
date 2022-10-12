@@ -215,8 +215,7 @@ async def my_colorh(interaction: discord.Interaction, hex_code:str):
     try:
         h = int(hex_code, 16)
         if (h <= 16777215) and (h >= 0):    # 0xFFFFFF = 16777215
-            color = discord.Color(value=h)
-            r, g, b = color.to_rgb()
+            r, g, b = discord.Color(value=h).to_rgb()   # returns a tuple (r, g, b)
 
             logs.info(f"my_colorh - HEX {hex_code} - [ r: {r}, g: {g}, b: {b} ]")
             
@@ -229,9 +228,12 @@ async def my_colorh(interaction: discord.Interaction, hex_code:str):
             # Finally, send message when done
             await interaction.followup.send(f"Role updated...")
         else:
+            logs.info(f"my_colorh - Out of range hexadecimal received from {interaction.user.name} - {hex_code}")
             await interaction.response.send_message("The hexadecimal provided was not within range, the maximum size is '0xFFFFFF' and minimum above 0", ephemeral=True)
     except ValueError:
-        await interaction.response.send_message("", ephemeral=True)
+        logs.info(f"my_colorh - Invalid hexadecimal received from {interaction.user.name} - {hex_code}")
+        await interaction.response.send_message("ValueError - The provided value was not a valid hexadecimal", ephemeral=True)
+
 
 # Handles the color role commands logic
 async def color_role_handler(interaction: discord.Interaction, r, g, b):
